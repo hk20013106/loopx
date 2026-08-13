@@ -1,0 +1,36 @@
+name: Windows Native Meta-RLR Qualification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/windows-native-meta-rlr-qualification.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  path-a-core:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out pinned LoopX revision
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install LoopX from this checkout
+        run: python -m pip install --disable-pip-version-check -e .
+
+      - name: Verify CLI entry point
+        run: loopx --help
+
+      - name: Verify custom-host doctor
+        run: loopx doctor --agent-type other-agent
+
+      - name: Run official Path A custom-runtime smoke
+        run: python examples/custom-runtime-minimal-cli-turn-smoke.py
