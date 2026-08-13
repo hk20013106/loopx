@@ -32,5 +32,31 @@ jobs:
       - name: Verify custom-host doctor
         run: loopx doctor --agent-type other-agent
 
+      - name: Verify Meta-RLR agent-onboard packet
+        shell: pwsh
+        run: |
+          $project = Join-Path $env:RUNNER_TEMP "meta-rlr-agent-onboard"
+          New-Item -ItemType Directory -Force -Path $project | Out-Null
+          $raw = loopx --format json agent-onboard `
+            --agent-type other-agent `
+            --project $project `
+            --goal-id meta-rlr-windows-qualification `
+            --agent-id codex-meta-rlr `
+            --task-text "Qualify native Windows Meta-RLR" `
+            --available-capability shell
+          if ($LASTEXITCODE -ne 0) {
+            throw "agent-onboard exited with code $LASTEXITCODE"
+          }
+          $packet = $raw | ConvertFrom-Json
+          if (-not $packet.ok) {
+            throw "agent-onboard returned ok=false"
+          }
+          if ($packet.agent_type -ne "other-agent") {
+            throw "agent-onboard returned unexpected agent_type: $($packet.agent_type)"
+          }
+          if (Test-Path (Join-Path $project ".loopx\registry.json")) {
+            throw "agent-onboard mutated an unconnected project registry"
+          }
+
       - name: Run official Path A custom-runtime smoke
         run: python examples/custom-runtime-minimal-cli-turn-smoke.py
